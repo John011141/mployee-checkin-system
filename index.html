@@ -8,10 +8,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh; /* ใช้ min-height แทน height เพื่อให้ยืดหยุ่น */
             margin: 0;
             background-color: #f0f2f5;
             color: #333;
+            overflow-y: hidden; /* ล็อกการเลื่อนหน้าเว็บในแนวตั้ง */
         }
         .container {
             background-color: #ffffff;
@@ -21,9 +22,12 @@
             width: 100%;
             max-width: 500px;
             text-align: center;
+            max-height: 100vh;
+            overflow-y: auto; /* ให้ container สามารถเลื่อนได้ในกรณีที่เนื้อหาเกินหน้าจอ */
+            box-sizing: border-box; /* ป้องกัน padding ทำให้ขนาดเกิน */
         }
         .logo {
-            width: 150px; /* ปรับขนาดโลโก้ตามต้องการ */
+            width: 150px;
             height: auto;
             margin-bottom: 20px;
         }
@@ -34,14 +38,17 @@
         .video-container {
             position: relative;
             width: 100%;
-            max-width: 300px; /* จำกัดความกว้างเพื่อไม่ให้วิดีโอกว้างเกินไป */
-            height: 400px; /* ปรับความสูงให้เป็นแนวตั้งมากขึ้น */
+            padding-top: 133.33%; /* กำหนดอัตราส่วนแนวตั้ง (3:4) */
+            height: 0;
             border-radius: 8px;
             overflow: hidden;
-            margin: 0 auto 20px auto; /* จัดให้อยู่ตรงกลาง */
+            margin: 0 auto 20px auto;
             background-color: #000;
         }
         #video {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -169,8 +176,8 @@
                 const constraints = {
                     video: {
                         facingMode: "user",
-                        width: { ideal: 360 }, // กำหนดความละเอียดแนวตั้ง
-                        height: { ideal: 640 } // กำหนดความละเอียดแนวนอน
+                        width: { ideal: 360 },
+                        height: { ideal: 640 }
                     }
                 };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
