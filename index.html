@@ -325,6 +325,16 @@
                 handleCheckAction('เช็คเอาท์');
             }
         });
+        
+        // เพิ่ม event listener เพื่อล็อกการ scroll เมื่อ input ได้รับโฟกัส
+        nameInput.addEventListener('focus', () => {
+            document.body.style.overflowY = 'hidden';
+        });
+
+        // เพิ่ม event listener เพื่อปลดล็อกการ scroll เมื่อ input ไม่ได้รับโฟกัส
+        nameInput.addEventListener('blur', () => {
+            document.body.style.overflowY = 'hidden';
+        });
     </script>
 </body>
 </html>
