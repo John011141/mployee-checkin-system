@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ระบบเช็คอินพนักงาน</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .logo {
+            width: 150px; /* ปรับขนาดโลโก้ตามต้องการ */
+            height: auto;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1e3a8a;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            background-color: #000;
+        }
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        #info-box {
+            background-color: #e0f2fe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        #info-box p {
+            margin: 0;
+            line-height: 1.6;
+        }
+        #info-box strong {
+            color: #1d4ed8;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        #nameInput {
+            width: calc(100% - 22px);
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+        }
+        .check-btn {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #fff;
+            transition: background-color 0.3s ease, opacity 0.3s ease;
+        }
+        #checkInBtn {
+            background-color: #10b981;
+            margin-right: 10px;
+        }
+        #checkOutBtn {
+            background-color: #ef4444;
+            margin-left: 10px;
+        }
+        .check-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+        #message.success {
+            color: #0d9488;
+        }
+        #message.error {
+            color: #b91c1c;
+        }
+        #message.loading {
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://img2.pic.in.th/pic/CompanyLogo.jpg" alt="Company Logo" class="logo">
+        <h1>ระบบเช็คอินพนักงาน</h1>
+        <div class="video-container">
+            <video id="video" autoplay></video>
+        </div>
+        <canvas id="canvas" style="display:none;"></canvas>
+        
+        <div id="info-box">
+            <p><strong>วันที่:</strong> <span id="dateDisplay"></span></p>
+            <p><strong>เวลา:</strong> <span id="timeDisplay"></span></p>
+            <p><strong>พิกัด:</strong> <span id="locationDisplay">กำลังโหลด...</span></p>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="nameInput" placeholder="ชื่อ-นามสกุล">
+        </div>
+        
+        <div class="button-group">
+            <button id="checkInBtn" class="check-btn">เช็คอิน</button>
+            <button id="checkOutBtn" class="check-btn">เช็คเอาท์</button>
+        </div>
+        
+        <p id="message"></p>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const nameInput = document.getElementById('nameInput');
+        const message = document.getElementById('message');
+        const dateDisplay = document.getElementById('dateDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const locationDisplay = document.getElementById('locationDisplay');
+        const checkInBtn = document.getElementById('checkInBtn');
+        const checkOutBtn = document.getElementById('checkOutBtn');
+        
+        let isCameraReady = false;
+        let timeoutHandle;
+        
+        function updateButtonStatus() {
+            // ไม่ต้องตรวจสอบ localStorage เพราะต้องการให้สามารถเช็คอิน/เช็คเอาท์ได้หลายคน
+            const name = nameInput.value.trim();
+            checkInBtn.disabled = !isCameraReady || name === '';
+            checkOutBtn.disabled = !isCameraReady || name === '';
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                isCameraReady = true;
+                message.textContent = 'กล้องพร้อมใช้งานแล้ว';
+                message.className = 'success';
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                isCameraReady = false;
+                message.textContent = 'กล้องไม่พร้อมใช้งาน กรุณาอนุญาตการเข้าถึง';
+                message.className = 'error';
+            } finally {
+                updateButtonStatus();
+            }
+        }
+
+        async function getLocation() {
+            if (!navigator.geolocation) {
+                locationDisplay.textContent = 'เบราว์เซอร์ไม่รองรับ';
+                return;
+            }
+
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    const options = {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    };
+                    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+                });
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                locationDisplay.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            } catch (err) {
+                console.error("Error getting location: ", err);
+                locationDisplay.textContent = 'ไม่สามารถระบุพิกัดได้';
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const date = now.toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            const time = now.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            dateDisplay.textContent = date;
+            timeDisplay.textContent = time;
+        }
+
+        window.onload = () => {
+            startCamera();
+            getLocation();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            nameInput.addEventListener('input', updateButtonStatus);
+        };
+
+        async function handleCheckAction(actionType) {
+            clearTimeout(timeoutHandle); 
+
+            const name = nameInput.value.trim();
+            if (!name) {
+                message.textContent = 'กรุณากรอกชื่อ-นามสกุล';
+                message.className = 'error';
+                timeoutHandle = setTimeout(() => {
+                    message.textContent = '';
+                }, 3000);
+                return;
+            }
+            
+            message.textContent = `กำลังส่งข้อมูล ${actionType}...`;
+            message.className = 'loading';
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = true;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+            const locationText = locationDisplay.textContent;
+
+            const record = {
+                name: name,
+                timestamp: new Date().toLocaleString(),
+                location: locationText,
+                type: actionType,
+                image: imageDataUrl
+            };
+            
+            // แทนที่ด้วย URL ของ Google Apps Script ที่ Deploy ล่าสุด
+            const appScriptUrl = 'https://script.google.com/macros/s/AKfycbxAnQ2ks2Td5-5wlQ_17Lb8NNNjNDrzMweYVRJXPupO3lR-qJICGv1G5WpkvNO_DzMI3g/exec';
+
+            try {
+                const response = await fetch(appScriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(record),
+                });
+                
+                const result = await response.text();
+                console.log(result);
+
+                if (result.includes("Error")) {
+                    message.textContent = `${result.replace("Error: ", "")}`;
+                    message.className = 'error';
+                } else {
+                    message.textContent = `${name} ทำการ ${actionType} สำเร็จ!`;
+                    message.className = 'success';
+                    nameInput.value = ''; // เคลียร์ช่องชื่อทุกครั้งที่ทำงานสำเร็จ
+                }
+            } catch (err) {
+                message.textContent = `เกิดข้อผิดพลาดในการส่งข้อมูล: ${err}`;
+                message.className = 'error';
+                console.error(err);
+            } finally {
+                updateButtonStatus();
+                timeoutHandle = setTimeout(() => {
+                    message.textContent = '';
+                }, 3000);
+            }
+        }
+
+        checkInBtn.addEventListener('click', () => {
+            if (!checkInBtn.disabled) {
+                handleCheckAction('เช็คอิน');
+            }
+        });
+        checkOutBtn.addEventListener('click', () => {
+            if (!checkOutBtn.disabled) {
+                handleCheckAction('เช็คเอาท์');
+            }
+        });
+    </script>
+</body>
+</html>
