@@ -119,7 +119,7 @@
         <img src="https://img2.pic.in.th/pic/CompanyLogo.jpg" alt="Company Logo" class="logo">
         <h1>ระบบเช็คอินพนักงาน</h1>
         <div class="video-container">
-            <video id="video" autoplay></video>
+            <video id="video" autoplay playsinline></video>
         </div>
         <canvas id="canvas" style="display:none;"></canvas>
         
@@ -157,7 +157,6 @@
         let timeoutHandle;
         
         function updateButtonStatus() {
-            // ไม่ต้องตรวจสอบ localStorage เพราะต้องการให้สามารถเช็คอิน/เช็คเอาท์ได้หลายคน
             const name = nameInput.value.trim();
             checkInBtn.disabled = !isCameraReady || name === '';
             checkOutBtn.disabled = !isCameraReady || name === '';
@@ -165,7 +164,13 @@
 
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // อัปเดตเงื่อนไขเพื่อใช้กล้องหน้า (user) บนมือถือ
+                const constraints = {
+                    video: {
+                        facingMode: "user"
+                    }
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
                 isCameraReady = true;
                 message.textContent = 'กล้องพร้อมใช้งานแล้ว';
@@ -173,7 +178,14 @@
             } catch (err) {
                 console.error("Error accessing camera: ", err);
                 isCameraReady = false;
-                message.textContent = 'กล้องไม่พร้อมใช้งาน กรุณาอนุญาตการเข้าถึง';
+                // ปรับข้อความแจ้งเตือนให้ชัดเจนขึ้น
+                if (err.name === 'NotAllowedError') {
+                    message.textContent = 'กรุณาอนุญาตการเข้าถึงกล้อง';
+                } else if (err.name === 'NotReadableError') {
+                    message.textContent = 'กล้องอาจถูกใช้งานโดยแอปพลิเคชันอื่นอยู่';
+                } else {
+                    message.textContent = 'กล้องไม่พร้อมใช้งาน';
+                }
                 message.className = 'error';
             } finally {
                 updateButtonStatus();
