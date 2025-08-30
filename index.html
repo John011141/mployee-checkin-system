@@ -34,10 +34,11 @@
         .video-container {
             position: relative;
             width: 100%;
-            height: 300px;
+            max-width: 300px; /* จำกัดความกว้างเพื่อไม่ให้วิดีโอกว้างเกินไป */
+            height: 400px; /* ปรับความสูงให้เป็นแนวตั้งมากขึ้น */
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 20px;
+            margin: 0 auto 20px auto; /* จัดให้อยู่ตรงกลาง */
             background-color: #000;
         }
         #video {
@@ -164,10 +165,12 @@
 
         async function startCamera() {
             try {
-                // อัปเดตเงื่อนไขเพื่อใช้กล้องหน้า (user) บนมือถือ
+                // อัปเดตเงื่อนไขเพื่อใช้กล้องหน้า (user) และกำหนดอัตราส่วนภาพเป็นแนวตั้ง
                 const constraints = {
                     video: {
-                        facingMode: "user"
+                        facingMode: "user",
+                        width: { ideal: 360 }, // กำหนดความละเอียดแนวตั้ง
+                        height: { ideal: 640 } // กำหนดความละเอียดแนวนอน
                     }
                 };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -178,7 +181,6 @@
             } catch (err) {
                 console.error("Error accessing camera: ", err);
                 isCameraReady = false;
-                // ปรับข้อความแจ้งเตือนให้ชัดเจนขึ้น
                 if (err.name === 'NotAllowedError') {
                     message.textContent = 'กรุณาอนุญาตการเข้าถึงกล้อง';
                 } else if (err.name === 'NotReadableError') {
